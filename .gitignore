@@ -1,0 +1,8 @@
+node_modules/
+ndjson/
+*.ndjson
+!test/fixtures/*.ndjson
+build/
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,52 @@
+{
+  "name": "rulepress",
+  "version": "2.0.0",
+  "description": "Press Elastic detection-rule TOML into Kibana-importable NDJSON. Handles new_terms, threshold, filters, ES|QL, and investigation-guide transforms.",
+  "type": "module",
+  "bin": {
+    "rulepress": "bin/rulepress.js"
+  },
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "README.vi.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "lint": "node --check src/convert.js && node --check src/validate.js && node --check src/cli.js"
+  },
+  "keywords": [
+    "elastic",
+    "elasticsearch",
+    "kibana",
+    "detection-rules",
+    "ndjson",
+    "toml",
+    "siem",
+    "sigma",
+    "eql",
+    "esql"
+  ],
+  "author": "TuanCui22",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TuanCui22/rulepress.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TuanCui22/rulepress/issues"
+  },
+  "homepage": "https://github.com/TuanCui22/rulepress#readme",
+  "dependencies": {
+    "smol-toml": "^1.9.1"
+  }
+}
