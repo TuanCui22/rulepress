@@ -130,8 +130,10 @@ function normalizeThreshold(rule) {
 }
 
 /**
- * `[[rule.filters]]` needs `$state.store` before Kibana will accept it, and
- * `meta.negate` must be a real boolean.
+ * `[[rule.filters]]` in the repo carries no `$state`. Kibana's UI writes one on
+ * every filter it creates (`appState` or `globalState`), so we default to
+ * `appState` when it is absent and leave an explicit value alone. `meta.negate`
+ * must be a real boolean.
  */
 function normalizeFilters(rule) {
   if (!Array.isArray(rule.filters)) return;

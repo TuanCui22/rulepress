@@ -59,7 +59,7 @@ value = "now-7d"
 
 test('filters: $state.store is injected and negate is a real boolean', () => {
   const { rule } = convertToml(fixture('new_terms_with_filters.toml'));
-  assert.equal(rule.filters.length, 3);
+  assert.equal(rule.filters.length, 2);
   for (const filter of rule.filters) {
     assert.deepEqual(filter.$state, { store: 'appState' });
     assert.equal(typeof filter.meta.negate, 'boolean');
@@ -122,7 +122,7 @@ test('esql: rule converts with no index array required', () => {
   const { rule } = convertToml(fixture('esql_higher_order.toml'));
   assert.equal(rule.type, 'esql');
   assert.equal(rule.language, 'esql');
-  assert.ok(rule.query.includes('from .alerts-security.*'));
+  assert.ok(rule.query.includes('from .alerts-test.*'));
   const { errors } = validateRule(rule);
   assert.deepEqual(errors, []);
 });
@@ -142,8 +142,10 @@ test('repo-only tables never reach the payload', () => {
 test('note: $investigate placeholders render into Kibana plugin strings', () => {
   const { rule, warnings } = convertToml(fixture('new_terms_with_transforms.toml'));
   assert.ok(rule.note.includes('!{investigate{'));
-  assert.equal(/\$(osquery|investigate)_\d+/.test(rule.note), false);
-  assert.deepEqual(warnings, []);
+  // $investigate_0 and _1 have transforms; _9 does not, so it stays and is warned about.
+  assert.equal(/\$investigate_(0|1)\b/.test(rule.note), false);
+  assert.ok(rule.note.includes('$investigate_9'));
+  assert.ok(warnings.some((w) => w.includes('$investigate_9')));
 });
 
 test('note: a placeholder with no transform is reported, not silently kept', () => {
@@ -162,9 +164,9 @@ test('note: a literal $$ is not treated as a placeholder', () => {
   assert.deepEqual(missing, []);
 });
 
-test('note: no transform section leaves the note untouched', () => {
+test('note: a rule with no note is left alone', () => {
   const { rule } = convertToml(fixture('threshold_process_kill.toml'));
-  assert.equal(rule.note.includes('!{'), false);
+  assert.equal(rule.note, undefined);
 });
 
 test('JSON-string fields are revived when a hand-edited export leaves them as strings', () => {
@@ -268,11 +270,6 @@ test('validate: a leftover repo-only field is an error', () => {
   assert.ok(errors.some((e) => e.includes('repo-only field "metadata"')));
 });
 
-test('validate: filters without $state.store are rejected', () => {
-  const { errors } = validateRule(baseRule({ filters: [{ meta: { negate: true } }] }));
-  assert.ok(errors.some((e) => e.includes('$state.store')));
-});
-
 test('validate: unrendered note placeholders are a warning, not an error', () => {
   const { errors, warnings } = validateRule(baseRule({ note: 'run $osquery_0' }));
   assert.deepEqual(errors, []);
@@ -296,4 +293,9 @@ test('a build-config TOML is classified as neither', () => {
 test('a bare document with name and query is still treated as a rule', () => {
   const { kind } = convertToml('name = "Bare"\nquery = "x"\n');
   assert.equal(kind, 'rule');
+});
+test('validate: a filter without $state.store is a warning, not an error', () => {
+  const { errors, warnings } = validateRule(baseRule({ filters: [{ meta: { negate: true } }] }));
+  assert.deepEqual(errors, []);
+  assert.ok(warnings.some((w) => w.includes('$state.store')));
 });

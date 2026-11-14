@@ -13,11 +13,13 @@ Convert thẳng sẽ ra file Kibana từ chối hoặc làm sai nội dung. Ba c
 | Trong TOML | Kibana cần | Convert thô làm gì |
 |---|---|---|
 | `[rule.new_terms]` với `field` / `value` | key top-level **đặt tên theo** `field` | hard-code `new_terms_fields`, hỏng mọi rule đổi tên field |
-| `[[rule.filters]]` | `$state.store` trên từng filter | bỏ mất, import lỗi |
 | `$investigate_0` trong `note` | chuỗi plugin `!{investigate{...}}` | để nguyên `$investigate_0` trong alert |
+| `[rule.threshold]` với `field` là chuỗi trần | mảng | truyền nguyên chuỗi |
+| bảng `[metadata]` / `[transform]` | không cần, chỉ có trong repo | nhét luôn vào payload |
+| BOM UTF-8 do editor Windows thêm vào | không có BOM | làm parser TOML chết |
 
-`rulepress` xử lý cả ba, cộng thêm `[rule.threshold]`, rule ES|QL, building block, và hai bảng chỉ tồn tại
-trong repo là `[metadata]` / `[transform]` (không được lọt vào payload).
+`rulepress` xử lý tất cả, cộng thêm rule ES|QL, building block, và `[[rule.filters]]` (tự điền
+`$state.store = appState` khi thiếu, đúng như Kibana UI ghi).
 
 ## Cài đặt
 
@@ -102,7 +104,7 @@ Mỗi rule sau khi convert được soát những lỗi mà Kibana chỉ trả v
 - có `new_terms_fields` với type `new_terms`
 - có `threshold.value` với type `threshold`
 - không sót field chỉ có trong repo (`metadata`, `transform`, `new_terms`, `meta`)
-- mọi filter đều có `$state.store`
+- mọi filter đều có `$state.store` (tự điền, và cảnh báo nếu thiếu)
 - không còn `$osquery_N` / `$investigate_N` chưa render trong `note`
 
 ## Dùng như thư viện

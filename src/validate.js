@@ -119,7 +119,8 @@ export function validateRule(rule, options = {}) {
     }
   }
 
-  // Filters Kibana needs a store on.
+  // Filters: `$state.store` is optional in the Elastic schema but the Kibana UI
+  // always writes one, so a missing store is a warning rather than an error.
   if (Array.isArray(rule.filters)) {
     rule.filters.forEach((filter, i) => {
       if (!isPlainObject(filter)) {
@@ -127,7 +128,7 @@ export function validateRule(rule, options = {}) {
         return;
       }
       if (!isPlainObject(filter.$state) || typeof filter.$state.store !== 'string') {
-        errors.push(`${source}: filters[${i}] is missing $state.store`);
+        warnings.push(`${source}: filters[${i}] has no $state.store; Kibana will default it`);
       }
     });
   }

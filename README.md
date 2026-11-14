@@ -13,11 +13,13 @@ A straight conversion produces a file Kibana rejects or silently mangles. Three 
 | What the TOML has | What Kibana needs | What a naive converter does |
 |---|---|---|
 | `[rule.new_terms]` with `field` / `value` | a top-level key **named by** `field` | hard-codes `new_terms_fields`, breaking any renamed rule |
-| `[[rule.filters]]` | `$state.store` on every filter | omits it, import fails |
 | `$investigate_0` in `note` | `!{investigate{...}}` plugin string | leaves the literal `$investigate_0` in the alert |
+| `[rule.threshold]` with a bare string `field` | an array | passes the string through |
+| `[metadata]` / `[transform]` tables | nothing — repo-only | ships them into the payload |
+| a UTF-8 BOM from a Windows editor | no BOM | crashes the TOML parser |
 
-`rulepress` handles all three, plus `[rule.threshold]`, ES|QL rules, building blocks, and the repo-only
-`[metadata]` / `[transform]` tables that must not reach the payload.
+`rulepress` handles all of these, plus ES|QL rules, building blocks, and `[[rule.filters]]` (it defaults
+`$state.store` to `appState` when absent, matching what the Kibana UI writes).
 
 ## Install
 
@@ -102,7 +104,7 @@ Each converted rule is checked for the things Kibana only tells you about with a
 - `new_terms_fields` present for `new_terms`
 - `threshold.value` present for `threshold`
 - no repo-only leftovers (`metadata`, `transform`, `new_terms`, `meta`)
-- every filter carries `$state.store`
+- every filter carries `$state.store` (defaulted, and flagged if it was missing)
 - no unrendered `$osquery_N` / `$investigate_N` left in `note`
 
 ## Library use
