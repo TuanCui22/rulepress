@@ -3,6 +3,21 @@ ndjson/
 *.ndjson
 !test/fixtures/*.ndjson
 build/
+ci-out/
 .DS_Store
 Thumbs.db
 *.log
+
+# Local project config created by `rulepress --init`
+rulepress.config.json
+
+# Scratch output from manual testing
+_out/
+_watch/
+_open/
+_dry/
+_cmp/
+_report.json
+_report_full.json
+_after.json
+_linux.ndjson

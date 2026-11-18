@@ -1,0 +1,43 @@
+# Normalize line endings so the repo behaves the same on Windows, Linux and macOS.
+#
+# Why this file exists: without it, a Windows clone with core.autocrlf=true
+# writes CRLF into the working tree, and committing from that clone pushes CRLF
+# into the repo. A CRLF shebang (`#!/usr/bin/env node\r`) makes the CLI fail on
+# Linux with "bad interpreter: No such file or directory".
+#
+# Rule: everything in the repo is LF. Only files that Windows itself executes
+# get CRLF.
+
+# Default: normalize to LF in the repository, and check out as LF everywhere.
+* text=auto eol=lf
+
+# Source, config, docs and rules are always LF.
+*.js      text eol=lf
+*.mjs     text eol=lf
+*.cjs     text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.toml    text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.sh      text eol=lf
+*.ndjson  text eol=lf
+LICENSE   text eol=lf
+
+# Windows-native scripts need CRLF, otherwise cmd.exe and some PowerShell
+# hosts mis-parse them.
+*.ps1     text eol=crlf
+*.psm1    text eol=crlf
+*.cmd     text eol=crlf
+*.bat     text eol=crlf
+
+# Binary files: never touch them.
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.webp    binary
+*.zip     binary
+*.gz      binary
+*.pdf     binary

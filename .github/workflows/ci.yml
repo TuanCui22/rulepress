@@ -1,0 +1,121 @@
+name: CI
+
+# "Works on Linux and Windows" is a claim. This workflow is the proof.
+# It runs the test suite and a real end-to-end conversion on all three
+# operating systems, across every Node version the package claims to support.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['18', '20', '22']
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint (syntax check)
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      # End-to-end: convert the fixtures and assert real output appears.
+      # This is the step that would have caught a CRLF shebang or a path bug
+      # that unit tests miss.
+      - name: End-to-end conversion
+        shell: bash
+        run: |
+          set -euo pipefail
+          node bin/rulepress.js test/fixtures -o ci-out
+          count=$(ls ci-out/*.ndjson 2>/dev/null | wc -l)
+          echo "produced $count ndjson files"
+          if [ "$count" -lt 5 ]; then
+            echo "::error::expected at least 5 converted rules, got $count"
+            exit 1
+          fi
+
+      # Every output line must be a single valid JSON object. Kibana rejects
+      # the whole import if one line is malformed, so check it here instead.
+      - name: Validate NDJSON output
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e '
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const dir = "ci-out";
+            let lines = 0;
+            for (const f of fs.readdirSync(dir)) {
+              if (!f.endsWith(".ndjson")) continue;
+              const text = fs.readFileSync(path.join(dir, f), "utf8");
+              for (const line of text.split("\n")) {
+                if (!line.trim()) continue;
+                const obj = JSON.parse(line);
+                if (!obj.rule_id) throw new Error(f + ": line missing rule_id");
+                lines += 1;
+              }
+            }
+            console.log("validated " + lines + " NDJSON lines");
+            if (lines === 0) throw new Error("no NDJSON lines produced");
+          '
+
+      # The CLI must be runnable as a command, not just via `node bin/...`.
+      # On Linux/macOS this proves the shebang and the exec bit survived.
+      - name: CLI is executable via shebang
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node bin/rulepress.js --version
+          # Simulate a global install and run the bin shim.
+          npm link
+          rulepress --version
+          rulepress test/fixtures --check
+
+      - name: CLI works on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          node bin/rulepress.js --version
+          npm link
+          rulepress --version
+          rulepress test/fixtures --check
+          if ($LASTEXITCODE -ne 0) { throw "rulepress --check failed" }
+
+      # Guard the thing this whole workflow exists for: no CRLF in source.
+      - name: No CRLF in tracked source files
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bad=$(git ls-files --eol -- '*.js' '*.json' '*.md' '*.toml' '*.sh' \
+                | grep 'w/crlf' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::CRLF found in source files (breaks Linux shebangs):"
+            echo "$bad"
+            exit 1
+          fi
+          echo "all source files are LF"
